@@ -27,47 +27,49 @@ Net::PJLink - PJLink protocol implementation
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02 - Improved documentation and tests.
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
 
 Net::PJLink is a pure perl implementation of the PJLink protocol (L<http://pjlink.jbmia.or.jp/english/>) version 1.00, Class 1.
 This is a standard protocol for communicating with network-capable projectors.
-Net::PJLink is done in object-oriented style, with an object representing a group of one or more projectors.
-An object has methods corresponding to each of the commands in the PJLink protocol specification.
+Net::PJLink uses an object-oriented style, with an object representing a group of one or more projectors.
+An object has methods corresponding to the commands in the PJLink protocol specification.
 
 	use Net::PJLink;
-	
+
 	my $prj = Net::PJLink->new(
 		host       => [ '10.0.0.1', '10.0.0.2' ],
 		keep_alive => 1,
 	);
-	
+
 	$prj->set_power(1); # turn on projectors
-	
+
 	$prj->set_audio_mute(1); # mute sound
-	
+
 	# retreive the current input being used
 	my $input = $prj->get_input();
 	if ($input->{'10.0.0.1'}->[0] == Net::PJLink::INPUT_RGB) {
-		print "Projector 1 is using RGB input number " . $input->{'10.0.0.1'}->[1] . ".";
+		print "RGB input number " . $input->{'10.0.0.1'}->[1];
+		print " is active on projector 1.";
 	}
-	
+
 	# close network connections to the projectors
 	$prj->close_all_connections;
 
-=head1 EXPORTED CONSTANTS
+=head1 EXPORTS
 
+Net::PJLink uses constants to represent status codes sent to and recevied from projectors.
 These constants can be used like C<Net::PJLink::ERR_COMMAND>, or imported
 into the local namespace by using the Exporter tag C<:RESPONSES>.
 
 	use Net::PJLink qw( :RESPONSES );
-	
+
 	my $prj = Net::PJLink->new(
 		host => '192.168.1.10'
 	);
@@ -75,55 +77,59 @@ into the local namespace by using the Exporter tag C<:RESPONSES>.
 		print "Projector is on.";
 	}
 
-=head2 command response constants
+The two lists below describe each symbol that is exported by the C<:RESPONSES> tag.
+
+=head2 Command Response Constants
 
 These are general status codes that are common to many projector commands.
 
 =over 4
 
-=item C<OK>
+=item * C<OK>
 
 The command succeeded.
 
-=item C<WARNING>
+=item * C<WARNING>
 
 Status is "warning".
 
-=item C<ERROR>
+=item * C<ERROR>
 
 Status is "error".
 
-=item C<ERR_COMMAND>
+=item * C<ERR_COMMAND>
 
 The command could not be recognized or is not supported by the projector.
+If this happens, the projector is deviating from PJLink 1.00 Class 1, the message is getting corrupted, or there is a serious bug in this module.
 
-=item C<ERR_PARAMETER>
+=item * C<ERR_PARAMETER>
 
 An invalid parameter was given in the command.
 
-=item C<ERR_UNAVL_TIME>
+=item * C<ERR_UNAVL_TIME>
 
 The command is not available at this time (e.g. projector is on standby, warming up, etc.).
 
-=item C<ERR_PRJT_FAIL>
+=item * C<ERR_PRJT_FAIL>
 
 A projector failure occurred when processing the command.
 
-=item C<ERR_NETWORK>
+=item * C<ERR_NETWORK>
 
 A network connection to the projector could not be established.
 
-=item C<ERR_AUTH>
+=item * C<ERR_AUTH>
 
 Authentication failed.
 
-=item C<ERR_TIMEOUT>
+=item * C<ERR_TIMEOUT>
 
 A response from the projector was not received.
 
-=item C<ERR_PARSE>
+=item * C<ERR_PARSE>
 
-The projector's response could not be understood.
+The projector's response was received, but could not be understood.
+If this happens, the projector is deviating from PJLink 1.00 Class 1, the message is getting corrupted, or there is a serious bug in this module.
 
 =back
 
@@ -143,36 +149,36 @@ use constant {
 	ERR_PARSE	=> -10,
 };
 
-=head2 status responses
+=head2 Status Responses
 
-These values are returned from specific commands to give more detailed information.
+These values are returned from commands that request information from the projector.
 Which values can be returned from which commands is specified in the documentation for each command.
 
 =over 4
 
-=item C<POWER_OFF>
+=item * C<POWER_OFF>
 
-=item C<POWER_ON>
+=item * C<POWER_ON>
 
-=item C<POWER_COOLING>
+=item * C<POWER_COOLING>
 
-=item C<POWER_WARMUP>
+=item * C<POWER_WARMUP>
 
-=item C<INPUT_RGB>
+=item * C<INPUT_RGB>
 
-=item C<INPUT_VIDEO>
+=item * C<INPUT_VIDEO>
 
-=item C<INPUT_DIGITAL>
+=item * C<INPUT_DIGITAL>
 
-=item C<INPUT_STORAGE>
+=item * C<INPUT_STORAGE>
 
-=item C<INPUT_NETWORK>
+=item * C<INPUT_NETWORK>
 
-=item C<MUTE_VIDEO>
+=item * C<MUTE_VIDEO>
 
-=item C<MUTE_AUDIO>
+=item * C<MUTE_AUDIO>
 
-=over
+=back
 
 =cut
 
@@ -221,7 +227,7 @@ my %COMMAND = (
 	mfr		=> 'INF1',
 	prod_name	=> 'INF2',
 	prod_info	=> 'INFO',
-	class		=> '1CLSS',
+	class		=> 'CLSS',
 );
 
 # used internally
@@ -235,13 +241,26 @@ my %RESPONSE = (
 	'ERR4'		=> ERR_PRJT_FAIL,
 );
 
-=head1 SUBROUTINES/METHODS
+=head1 UTILITY METHODS
 
-=head2 new
+=head2 new(...)
 
-Instantiate a new PJLink object.
+	use Net::PJLink;
+
+	# Send commands to two hosts (batch mode),
+	# don't close the connection after each command,
+	# if a host cannot be contacted then remove it,
+	# wait up to 1 second for a connection to be opened
+	my $prj = Net::PJLink->new(
+		host		=> ['10.0.0.1', '10.0.0.2'],
+		try_once	=> 1,
+		keep_alive	=> 1,
+		connect_timeout	=> 1.0,
+	);
+
+Constructor for a new PJLink object.
 It requires at least the C<host> option to indicate where commands should be sent.
-Full list of arguments:
+The full list of arguments:
 
 =over 4
 
@@ -253,38 +272,43 @@ Every command given to this object will be applied to all hosts, and replies wil
 
 =item try_once
 
-Remove any host that cannot be contacted from the list of hosts.
-This speeds up any subseqent commands that are issued by not waiting for network timeout on an unresponsive host.
-If this option is not set, the list of hosts will not be automatically changed.
+True/False. Default is false.
+Automatically remove unresponsive hosts from the list of hosts.
+This speeds up any subseqent commands that are issued by not waiting for network timeout on a host that is down.
+If this option evaluates false, the list of hosts will never be automatically changed.
 
 =item batch
 
-Force batch mode to be enabled or disabled.
+True/False.
+Force "batch mode" to be enabled or disabled.
 Batch mode is normally set automatically based on whether multiple hosts are being used.
 With batch mode on, all results will be returned as a hash reference indexed by hostname or IP address.
 If batch mode is disabled when commands are sent to multiple hosts, only one of the hosts' results will be returned (which one is unpredictable).
 
 =item port
 
+Default is 4352, which is the standard PJLink port.
 Connections will be made to this port on each host.
-If this option is not specified, the default PJLink port of 4352 will be used.
 
 =item auth_password
 
 Set the password that will be used for authentication for those hosts that require it. 
+It must be 32 alphanumeric characters or less.
+The password is not transmitted over the network; it is used to calculate an MD5 sum.
 
 =item keep_alive
 
+True/False. Default is false.
 If set, connections will not be closed automatically after a response is received.
 This is useful when sending many commands.
 
 =item connect_timeout
 
 The time (in seconds) to wait for a new TCP connection to be established.
+Default is 0.5.
 This may need to be changed, depending on your network and/or projector.
-If this option is not specified, the default of 0.5 seconds is used.
-This should provide good reliability, and be practical for a small number of projectors.
-In my testing, using a value of 0.05 works well for connecting to a large number of hosts over a fast network in a reasonable amount of time.
+The default should provide good reliability, and be practical for a small number of projectors.
+Using a value of 0.05 seems to work well for connecting to a large number of hosts over a fast network in a reasonable amount of time.
 (Larger values can take a long time when connecting to each host in a /24 subnet.)
 
 =item receive_timeout
@@ -294,19 +318,6 @@ If this option is not specified, a default of 5 seconds is used.
 The value needed here might vary greatly between different projector models.
 
 =back
-
-	use Net::PJLink;
-
-	# Send commands to two hosts (batch mode),
-	# don't close the connection after each command,
-	# if a host cannot be contacted then remove it,
-	# wait up to 1 second for a connection to be opened
-	my $prj = Net::PJLink->new(
-		host		=> ['10.0.0.1', '10.0.0.2'],
-		keep_alive	=> 1,
-		try_once	=> 1,
-		connect_timeout	=> 1.0,
-	);
 
 =cut
 
@@ -377,7 +388,7 @@ sub _auth_connection {
 	my $cnx = $self->{'host'}->{$host};
 	$cnx->recv($resp, 128);
 	# false, unless format is correct
-	return 0 unless ($resp =~ /^PJLINK ([01])( ([0-9a-fA-F]+))?\r$/);
+	return 0 unless (defined $resp && $resp =~ /^PJLINK ([01])( ([0-9a-fA-F]+))?\x0d$/);
 	# true, no auth required
 	return 1 if ($1 == 0);
 	# false, unless password is given
@@ -387,16 +398,16 @@ sub _auth_connection {
 
 	my $digest = Digest::MD5::md5_hex($3 . $self->{'auth_password'});
 	# test command to verify that auth succeeded
-	$cnx->send($digest . "%1POWR ?\r");
+	$cnx->send($digest . "%1POWR ?\xd");
 	$cnx->recv($resp, 32);
-	return 1 if ($resp =~ /^%1POWR=\d\r$/);
+	return 1 if (defined $resp && $resp =~ /^%1POWR=\d\x0d$/);
 	# don't close the connection yet,
 	# because auth might be tried with a
 	# different password
 	return 0;
 }
 
-=head2 set_auth_password
+=head2 set_auth_password($pass)
 
 Set the auth_password. This will only apply to new connections.
 
@@ -418,7 +429,7 @@ sub set_auth_password {
 	}
 }
 
-=head2 close_connection
+=head2 close_connection($host)
 
 Manually close the connection to one host, specified by hostname or IP address.
 Returns 1 if the connection was found and closed, returns 0 otherwise.
@@ -434,7 +445,7 @@ sub close_connection {
 	return 1;
 }
 
-=head2 close_all_connections
+=head2 close_all_connections()
 
 Manually close all open connections that are managed by this instance.
 This is usually used when the object has been created with the C<keep_alive> option.
@@ -444,6 +455,18 @@ This is usually used when the object has been created with the C<keep_alive> opt
 sub close_all_connections {
 	my $self = shift;
 	foreach (values %{$self->{'hosts'}}) { $_->close if ($_); }
+}
+
+# internal method
+# Build the command message and do some basic sanity
+# checks on it.
+sub _build_command {
+	my $self = shift;
+	my $cmd = shift;
+	my $arg = shift;
+	die("Invalid command name \"$cmd\"!") unless (defined $COMMAND{$cmd});
+	die("Invalid characters in command argument!") if ($arg =~ /\x0d/);
+	return PJLINK_C_HEADER . $COMMAND{$cmd} . ' ' . $arg . "\xd";
 }
 
 # internal method
@@ -462,9 +485,9 @@ sub _send_command {
 	my $self = shift;
 	my $cmd = shift;
 	my $arg = shift;
-	local $/ = "\r";
+	local $/ = "\xd";
 	my(%result, %name);
-	my $payload = PJLINK_C_HEADER . $cmd . ' ' . $arg . "\r";
+	my $payload = $self->_build_command($cmd, $arg);
 	my $select = IO::Select->new();
 	# send loop: try to connect to each host and send data
 	while (my($host, $cnx) = each %{$self->{'host'}}) {
@@ -499,7 +522,8 @@ sub _send_command {
 				$cnx->close;
 				$self->{'host'}->{$host} = 0;
 			}
-			if ($resp =~ /^%1$cmd=(.*)\r$/) {
+			$cmd = $COMMAND{$cmd};
+			if (defined $resp && $resp =~ /^%1$cmd=(.*)\x0d$/) {
 				if (defined $RESPONSE{$1}) {
 					$result{$host} = $RESPONSE{$1};
 				} else {
@@ -519,9 +543,9 @@ sub _send_command {
 	}
 }
 
-=head2 add_hosts
+=head2 add_hosts($host1, ...)
 
-Takes arguments of the same form as the C<host> option to C<new>.
+Takes arguments of the same form as the C<host> option to the C<new> constructor.
 These hosts will be appended to the list of hosts that commands will be sent to.
 Batch mode is enabled if appropriate.
 
@@ -545,9 +569,9 @@ sub add_hosts {
 	$self->{'batch'} = (scalar keys %{$self->{'host'}} > 1);
 }
 
-=head2 remove_hosts
+=head2 remove_hosts($host1, ...)
 
-Takes arguments of the same form as the C<host> option to C<new>.
+Takes arguments of the same form as the C<host> option to the C<new> constructor.
 These hosts will be removed from the list of hosts that commands will be sent to.
 Batch mode is not changed by this function in order to avoid a surprise change in output format.
 
@@ -578,18 +602,18 @@ If enabled, the return value of these functions will always be a hash reference,
 To illustrate:
 
 	$prj = Net::PJLink->new(host => '10.0.0.1');
-	
+
 	$prj->set_power(1);
 	# => 0
-	
+
 	$prj->add_hosts('10.0.0.2');
-	
+
 	$prj->set_power(1);
 	# => { '10.0.0.1' => 0, '10.0.0.2' => 0 }
 
-The return values described below for each method are the return values for one host (batch mode disabled).
+The return values described below for each method are the return values for each host.
 
-=head2 set_power
+=head2 set_power($state)
 
 Turn power on or off.
 If the single argument is true, turn on; if argument is false, turn off.
@@ -600,10 +624,10 @@ Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, C<ERR_PRJT_FAIL>.
 sub set_power {
 	my $self = shift;
 	my $status = (@_ ? '1' : '0');
-	return $self->_send_command($COMMAND{'power'}, $status);
+	return $self->_send_command('power', $status);
 }
 
-=head2 get_power
+=head2 get_power()
 
 Get the power status.
 Returns one of C<POWER_OFF>, C<POWER_ON>, C<POWER_COOLING>, C<POWER_WARMUP>, C<ERR_UNAVL_TIME>, or C<ERR_PRJT_FAIL>.
@@ -612,25 +636,25 @@ Returns one of C<POWER_OFF>, C<POWER_ON>, C<POWER_COOLING>, C<POWER_WARMUP>, C<E
 
 sub get_power {
 	my $self = shift;
-	return $self->_send_command($COMMAND{'power'}, '?');
+	return $self->_send_command('power', '?');
 }
 
-=head2 set_input
+=head2 set_input($input_type, $number)
 
 Set the active input.
 The first argument is the input type, which can be specified using one of the provided values:
 
 =over 4
 
-=item C<INPUT_RGB>
+=item * C<INPUT_RGB>
 
-=item C<INPUT_VIDEO>
+=item * C<INPUT_VIDEO>
 
-=item C<INPUT_DIGITAL>
+=item * C<INPUT_DIGITAL>
 
-=item C<INPUT_STORAGE>
+=item * C<INPUT_STORAGE>
 
-=item C<INPUT_NETWORK>
+=item * C<INPUT_NETWORK>
 
 =back
 
@@ -651,10 +675,10 @@ sub set_input {
 		carp "Invalid argument";
 		return 0;
 	}
-	return $self->_send_command($COMMAND{'input'}, "$value$number");
+	return $self->_send_command('input', "$value$number");
 }
 
-=head2 get_input
+=head2 get_input()
 
 Get the current active input.
 An array reference is returned, with the first value being the input type and the second value indicating which input of that type.
@@ -674,13 +698,13 @@ sub get_input {
 		return $_ unless (/(\d)(\d)/);
 		return [$1, $2];
 	};
-	my $resp = $self->_send_command($COMMAND{'input'}, '?');
+	my $resp = $self->_send_command('input', '?');
 	if (not $self->{'batch'}) { return &$xform($resp); }
 	foreach (keys %$resp) { $resp->{$_} = &$xform($resp->{$_}); }
 	return $resp;
 }
 
-=head2 set_audio_mute
+=head2 set_audio_mute($state)
 
 Set audio mute on or off.
 Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, or C<ERR_PRJT_FAIL>.
@@ -689,11 +713,11 @@ Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, or C<ERR_PRJT_FAIL>.
 
 sub set_audio_mute {
 	my $self = shift;
-	my $value = (@_ ? '1' : '0');
-	return $self->_send_command($COMMAND{'mute'}, '1' . $value);
+	my $value = ($_[0] ? '1' : '0');
+	return $self->_send_command('mute', '2' . $value);
 }
 
-=head2 set_video_mute
+=head2 set_video_mute($state)
 
 Set video mute on or off.
 Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, or C<ERR_PRJT_FAIL>.
@@ -702,11 +726,11 @@ Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, or C<ERR_PRJT_FAIL>.
 
 sub set_video_mute {
 	my $self = shift;
-	my $value = (@_ ? '1' : '0');
-	return $self->_send_command($COMMAND{'mute'}, '2' . $value);
+	my $value = ($_[0] ? '1' : '0');
+	return $self->_send_command('mute', '1' . $value);
 }
 
-=head2 get_av_mute
+=head2 get_av_mute()
 
 Get the current status of audio and video mute.
 An array reference is returned, with the first value being audio mute and the second being video mute.
@@ -718,21 +742,20 @@ sub get_av_mute {
 	my $self = shift;
 	my $xform = sub {
 		local $_ = shift;
-		return $_ unless (/(\d)(\d)/);
+		return $_ unless (/([123])([01])/);
 		switch ($1) {
-			case 1 { return [$2, not($2)]; }
-			case 2 { return [not($2), $2]; }
+			case 1 { return [1-$2, $2]; }
+			case 2 { return [$2, 1-$2]; }
 			case 3 { return [$2, $2]; }
-			else   { return undef }
 		}
 	};
-	my $resp = $self->_send_command($COMMAND{'mute'}, '?');
+	my $resp = $self->_send_command('mute', '?');
 	if (not $self->{'batch'}) { return &$xform($resp); }
 	foreach (keys %$resp) { $resp->{$_} = &$xform($resp->{$_}); }
 	return $resp;
 }
 
-=head2 get_status
+=head2 get_status()
 
 Get the health status of various parts of the projector.
 A hash reference is returned, with the keys being the name of the part.
@@ -748,7 +771,7 @@ A hash reference is returned, with the keys being the name of the part.
 	# }
 
 The response indicates that the projector's filter is in a C<WARNING> state, and all other areas are C<OK>.
-	
+
 The values will be one of C<OK>, C<WARNING>, or C<ERROR>.
 
 =cut
@@ -772,13 +795,13 @@ sub get_status {
 			'other'	=> $xlate{$6},
 		};
 	};
-	my $resp = $self->_send_command($COMMAND{'status'}, '?');
+	my $resp = $self->_send_command('status', '?');
 	if (not $self->{'batch'}) { return &$xform($resp); }
 	foreach (keys %$resp) { $resp->{$_} = &$xform($resp->{$_}); }
 	return $resp;
 }
 
-=head2 get_lamp_info
+=head2 get_lamp_info()
 
 Get the status of the lamp(s). The return value is a data structure like:
 
@@ -807,13 +830,13 @@ sub get_lamp_info {
 		}
 		return \@ret;
 	};
-	my $resp = $self->_send_command($COMMAND{'lamp'}, '?');
+	my $resp = $self->_send_command('lamp', '?');
 	if (not $self->{'batch'}) { return &$xform($resp); }
 	foreach (keys %$resp) { $resp->{$_} = &$xform($resp->{$_}); }
 	return $resp;
 }
 
-=head2 get_input_list
+=head2 get_input_list()
 
 Get a list of all available inputs. The return value is a data structure like:
 
@@ -831,22 +854,24 @@ sub get_input_list {
 	my $self = shift;
 	my $xform = sub {
 		local $_ = shift;
-		return $_ unless (/((\d+)\s+([1-5])(\d))+/);
+		return $_ if (/^-?\d+$/);
+		return ERR_PARSE unless (/[1-5][1-9]( [1-5][1-9])*/);
 		my @inputs = split / /;
 		my @ret;
 		while (scalar @inputs) {
-			my($type, $number) = splice @inputs, 0, 2;
-			push @ret, [$type, $number];
+			my $inp = shift @inputs;
+			$inp =~ /(\d)(\d)/;
+			push @ret, [$1, $2];
 		}
 		return \@ret;
 	};
-	my $resp = $self->_send_command($COMMAND{'input_list'}, '?');
+	my $resp = $self->_send_command('input_list', '?');
 	if (not $self->{'batch'}) { return &$xform($resp); }
 	foreach (keys %$resp) { $resp->{$_} = &$xform($resp->{$_}); }
 	return $resp;
 }
 
-=head2 get_name
+=head2 get_name()
 
 Get the projector name. Returns a string.
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
@@ -855,10 +880,10 @@ If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be 
 
 sub get_name {
 	my $self = shift;
-	return $self->_send_command($COMMAND{'name'}, '?');
+	return $self->_send_command('name', '?');
 }
 
-=head2 get_manufacturer
+=head2 get_manufacturer()
 
 Get the manufacturer name. Returns a string.
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
@@ -867,10 +892,10 @@ If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be 
 
 sub get_manufacturer {
 	my $self = shift;
-	return $self->_send_command($COMMAND{'mfr'}, '?');
+	return $self->_send_command('mfr', '?');
 }
 
-=head2 get_product_name
+=head2 get_product_name()
 
 Get the "product name". Returns a string.
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
@@ -879,10 +904,10 @@ If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be 
 
 sub get_product_name {
 	my $self = shift;
-	return $self->_send_command($COMMAND{'prod_name'}, '?');
+	return $self->_send_command('prod_name', '?');
 }
 
-=head2 get_product_info
+=head2 get_product_info()
 
 Get "other information". Returns a string.
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
@@ -891,19 +916,21 @@ If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be 
 
 sub get_product_info {
 	my $self = shift;
-	return $self->_send_command($COMMAND{'prod_info'}, '?');
+	return $self->_send_command('prod_info', '?');
 }
 
-=head2 get_class
+=head2 get_class()
 
-Get "class information". Returns a string.
+Get information on supported PJLink Class. Returns a single digit.
+For example, returning "2" indicated that the projector is compatible with the PJLink Class 2 protocol.
+The PJLink v.1.00 Class 1 specification only defines return values "1" and "2".
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
 
 =cut
 
 sub get_class {
 	my $self = shift;
-	return $self->_send_command($COMMAND{'class'}, '?');
+	return $self->_send_command('class', '?');
 }
 
 =head1 AUTHOR
@@ -913,12 +940,11 @@ Kyle Emmons, C<< <kemmons at nkcsd.k12.mo.us> >>
 =head1 BUGS
 
 This module has only been tested on Panasonic PTFW100NTU projectors.
-I also cannot test PJLink authentication against a real projector at this time, so it is very possible that the authentication code has bugs.
 The code for opening network connections may not work reliably for a large (~200) number of hosts.
 
 Please report any bugs or feature requests to C<bug-net-pjlink at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Net-PJLink>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Net-PJLink>.
+I will be notified, and then you'll automatically be notified of progress on your bug as I make changes.
 
 
 
@@ -951,10 +977,6 @@ L<http://cpanratings.perl.org/d/Net-PJLink>
 L<http://search.cpan.org/dist/Net-PJLink/>
 
 =back
-
-
-=head1 ACKNOWLEDGEMENTS
-
 
 =head1 LICENSE AND COPYRIGHT
 

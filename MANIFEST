@@ -4,7 +4,11 @@ Makefile.PL
 README
 lib/Net/PJLink.pm
 t/00-load.t
-t/manifest.t
-t/pod-coverage.t
-t/pod.t
+t/01-boilerplate.t
+t/02-manifest.t
+t/03-pod.t
+t/04-pod-coverage.t
+t/05-exports.t
+t/06-methods.t
+t/07-pjlink.t
 META.yml                                 Module meta-data (added by MakeMaker)
