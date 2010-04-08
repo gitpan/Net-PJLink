@@ -1,6 +1,6 @@
 #!perl -Tw
 
-use Test::More;
+use Test::More tests => (1 + 5 + 7 + 2 * 15);
 
 $fpid = undef;
 
@@ -18,6 +18,11 @@ END {
 	Proto		=> 'tcp',
 	Timeout		=> 5,
 	Reuse		=> 1,
+);
+%connect_opts = (
+	PeerAddr	=> 'localhost',
+	PeerPort	=> 55555,
+	Proto		=> 'tcp',
 );
 
 @cmd_resp_data = (
@@ -65,19 +70,25 @@ END {
 my $auth = 7;
 my $tests_per_cmd = 2;
 my $cmds = $tests_per_cmd * (scalar @cmd_resp_data);
-plan tests => (3 + $auth + $cmds);
+#plan tests => (3 + $auth + $cmds);
 
 SKIP: {
 	use_ok( 'IO::Socket::INET' )
-		|| skip("Test requires IO::Socket::INET", 2 + $auth + $cmds);
+		|| skip("Test requires IO::Socket::INET", 4 + $auth + $cmds);
 	use_ok( 'IO::Select' )
-		|| skip("Test requires IO::Select", 1 + $auth + $cmds);
+		|| skip("Test requires IO::Select", 3 + $auth + $cmds);
 
 	$srv = IO::Socket::INET->new(%listen_opts);
 	ok( defined $srv, "Create listen socket" )
-		|| skip("Cannot listen on localhost:55555", 0 + $auth + $cmds);
+		|| skip("Cannot listen on localhost:55555", 2 + $auth + $cmds);
+	$cli = IO::Socket::INET->new(%connect_opts);
+	ok( defined $cli, "Connect to listener" )
+		|| skip("Cannot connect to localhost:55555", 1 + $auth + $cmds);
+	ok( $cli->send('test'), "Send data to listener" )
+		|| skip("Cannot send data to localhost:55555", 0 + $auth + $cmds);
 	$srv->close;
 	undef $srv;
+	undef $cli;
 
 	$prj = Net::PJLink->new(
 		host	=> $listen_opts{'LocalAddr'},
@@ -85,10 +96,13 @@ SKIP: {
 	);
 
 	isa_ok( $prj, Net::PJLink, "Create Net::PJLink instance" );
-	is( $prj->{'port'}, $listen_opts{'LocalPort'}, "Check that port is set correctly" );
+	is( $prj->{'port'}, $listen_opts{'LocalPort'},
+	    "Check that port is set correctly" );
 
-	ok( $prj->set_auth_password('JBMIAProjectorLink'), "Set auth_password" );
-	is( $prj->{'auth_password'}, 'JBMIAProjectorLink', "Check for correct password" );
+	ok( $prj->set_auth_password('JBMIAProjectorLink'),
+	    "Set auth_password" );
+	is( $prj->{'auth_password'}, 'JBMIAProjectorLink',
+	    "Check for correct password" );
 
 	spawn(\&netlisten_auth) || skip("Cannot fork listener process", 3 + $cmds);
 	is( $prj->set_power(1), OK, "Send authenticated command" );

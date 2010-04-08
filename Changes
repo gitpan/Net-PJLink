@@ -1,8 +1,11 @@
 Revision history for Net-PJLink
 
+0.03    Thu, 08 Apr 2010 10:00:00 -0600
+        Fixes a problem with tests not getting a plan.
+
 0.02    Thu, 02 Apr 2010 13:00:00 -0600
-	Several protocol fixes, including the get_class() and get_input_list()
-	commands. Much improved documentation and tests.
+        Several protocol fixes, including the get_class() and get_input_list()
+        commands. Much improved documentation and tests.
 
 0.01    Fri, 12 Mar 2010 11:00:00 -0600
         First version, developed by testing against Panasonic PTFW100NTU projectors.
