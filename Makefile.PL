@@ -2,6 +2,14 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+# Check for MSG_DONTWAIT support
+eval {
+	no strict 'subs';
+	use Socket;
+	&MSG_DONTWAIT;
+};
+die "No support for OS" if ($@);
+
 WriteMakefile(
     NAME                => 'Net::PJLink',
     AUTHOR              => q{Kyle Emmons <kemmons@nkcsd.k12.mo.us>},

@@ -27,11 +27,11 @@ Net::PJLink - PJLink protocol implementation
 
 =head1 VERSION
 
-Version 0.03 - Fixes a testing problem.
+Version 0.04 - Miscellaneous small fixes.
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 =head1 SYNOPSIS
@@ -264,20 +264,20 @@ The full list of arguments:
 
 =over 4
 
-=item host
+=item * host
 
 This can be either a string consisting of a hostname or an IP address, or an array of such strings.
 If you want to add a whole subnet, use something like L<Net::CIDR::Set> to expand CIDR notation to an array of IP addresses.
 Every command given to this object will be applied to all hosts, and replies will be returned in a hash indexed by hostname or IP address if more than one host was given.
 
-=item try_once
+=item * try_once
 
 True/False. Default is false.
 Automatically remove unresponsive hosts from the list of hosts.
 This speeds up any subseqent commands that are issued by not waiting for network timeout on a host that is down.
 If this option evaluates false, the list of hosts will never be automatically changed.
 
-=item batch
+=item * batch
 
 True/False.
 Force "batch mode" to be enabled or disabled.
@@ -285,24 +285,24 @@ Batch mode is normally set automatically based on whether multiple hosts are bei
 With batch mode on, all results will be returned as a hash reference indexed by hostname or IP address.
 If batch mode is disabled when commands are sent to multiple hosts, only one of the hosts' results will be returned (which one is unpredictable).
 
-=item port
+=item * port
 
 Default is 4352, which is the standard PJLink port.
 Connections will be made to this port on each host.
 
-=item auth_password
+=item * auth_password
 
 Set the password that will be used for authentication for those hosts that require it. 
 It must be 32 alphanumeric characters or less.
 The password is not transmitted over the network; it is used to calculate an MD5 sum.
 
-=item keep_alive
+=item * keep_alive
 
 True/False. Default is false.
 If set, connections will not be closed automatically after a response is received.
 This is useful when sending many commands.
 
-=item connect_timeout
+=item * connect_timeout
 
 The time (in seconds) to wait for a new TCP connection to be established.
 Default is 0.5.
@@ -311,7 +311,7 @@ The default should provide good reliability, and be practical for a small number
 Using a value of 0.05 seems to work well for connecting to a large number of hosts over a fast network in a reasonable amount of time.
 (Larger values can take a long time when connecting to each host in a /24 subnet.)
 
-=item receive_timeout
+=item * receive_timeout
 
 The time (in seconds) to wait for a reply to be received.
 If this option is not specified, a default of 5 seconds is used.
@@ -409,7 +409,8 @@ sub _auth_connection {
 
 =head2 set_auth_password($pass)
 
-Set the auth_password. This will only apply to new connections.
+Set the authentication password.
+This will only apply to newly established connections.
 
 	$prj->set_auth_password('secret');
 
@@ -663,6 +664,7 @@ For example, to use the second video input:
 
 	$prj->set_input(Net::PJLink::INPUT_VIDEO, 2);
 
+See the C<get_input_list()> method for information on available inputs.
 Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, or C<ERR_PRJT_FAIL>.
 
 =cut
@@ -687,7 +689,7 @@ Example:
 	$prj->get_input();
 	# => [ 3, 1 ]
 
-The response indicates that the first INPUT_DIGITAL source is active.
+The example response indicates that the first INPUT_DIGITAL source is active.
 
 =cut
 
@@ -770,7 +772,7 @@ A hash reference is returned, with the keys being the name of the part.
 	#	'other'	=> 0,
 	# }
 
-The response indicates that the projector's filter is in a C<WARNING> state, and all other areas are C<OK>.
+The example response indicates that the projector's filter is in a C<WARNING> state, and all other areas are C<OK>.
 
 The values will be one of C<OK>, C<WARNING>, or C<ERROR>.
 
@@ -897,7 +899,7 @@ sub get_manufacturer {
 
 =head2 get_product_name()
 
-Get the "product name". Returns a string.
+Get the product name. Returns a string.
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
 
 =cut
@@ -922,7 +924,7 @@ sub get_product_info {
 =head2 get_class()
 
 Get information on supported PJLink Class. Returns a single digit.
-For example, returning "2" indicated that the projector is compatible with the PJLink Class 2 protocol.
+For example, returning "2" indicates that the projector is compatible with the PJLink Class 2 protocol.
 The PJLink v.1.00 Class 1 specification only defines return values "1" and "2".
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
 
@@ -940,7 +942,10 @@ Kyle Emmons, C<< <kemmons at nkcsd.k12.mo.us> >>
 =head1 BUGS
 
 This module has only been tested on Panasonic PTFW100NTU projectors.
+
 The code for opening network connections may not work reliably for a large (~200) number of hosts.
+This is due to network connections timing out before all hosts have been contacted.
+If you encounter this problem, adjusting the C<connect_timeout> and C<receive_timeout> arguments may help.
 
 Please report any bugs or feature requests to C<bug-net-pjlink at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Net-PJLink>.
@@ -988,6 +993,7 @@ by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
 
+The PJLink name is a trademark of Japan Business Machine and Information System Industries Association (JBMIA).
 
 =cut
 
