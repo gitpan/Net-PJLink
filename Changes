@@ -1,5 +1,8 @@
 Revision history for Net-PJLink
 
+1.00    Mon, 12 Jul 2010 05:20:00 -0600
+        Documentation update. Version reflects RELEASE status.
+
 0.04    Thu, 03 Jun 2010 13:00:00 -0600
         Explicitly test for OS support for Socket.pm features.
         Minor documentation updates.

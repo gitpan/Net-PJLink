@@ -1,5 +1,6 @@
 package Net::PJLink;
 
+use 5.008_001;
 use warnings;
 use strict;
 
@@ -27,11 +28,11 @@ Net::PJLink - PJLink protocol implementation
 
 =head1 VERSION
 
-Version 0.04 - Miscellaneous small fixes.
+Version 1.00 - Documentation update, compatibility fix.
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '1.00';
 
 
 =head1 SYNOPSIS
@@ -937,7 +938,7 @@ sub get_class {
 
 =head1 AUTHOR
 
-Kyle Emmons, C<< <kemmons at nkcsd.k12.mo.us> >>
+Kyle Emmons, C<< <kemmons at tma-0.net> >>
 
 =head1 BUGS
 

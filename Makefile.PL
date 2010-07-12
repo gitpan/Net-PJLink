@@ -1,3 +1,4 @@
+use 5.008001;
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
@@ -12,7 +13,7 @@ die "No support for OS" if ($@);
 
 WriteMakefile(
     NAME                => 'Net::PJLink',
-    AUTHOR              => q{Kyle Emmons <kemmons@nkcsd.k12.mo.us>},
+    AUTHOR              => q{Kyle Emmons <kemmons@tma-0.net>},
     VERSION_FROM        => 'lib/Net/PJLink.pm',
     ABSTRACT_FROM       => 'lib/Net/PJLink.pm',
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
