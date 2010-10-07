@@ -1,5 +1,8 @@
 Revision history for Net-PJLink
 
+1.01    Sun, 26 Sep 2010 17:30:00 -0600
+        Fix a bug in set_power.
+
 1.00    Mon, 12 Jul 2010 05:20:00 -0600
         Documentation update. Version reflects RELEASE status.
 

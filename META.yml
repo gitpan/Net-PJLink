@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Net-PJLink
-version:             1.00
+version:             1.01
 abstract:            PJLink protocol implementation
 license:             perl
 author:              

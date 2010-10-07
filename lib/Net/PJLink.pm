@@ -28,11 +28,11 @@ Net::PJLink - PJLink protocol implementation
 
 =head1 VERSION
 
-Version 1.00 - Documentation update, compatibility fix.
+Version 1.01 - Fix 
 
 =cut
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 
 =head1 SYNOPSIS
@@ -625,7 +625,7 @@ Returns one of C<OK>, C<ERR_PARAMETER>, C<ERR_UNAVL_TIME>, C<ERR_PRJT_FAIL>.
 
 sub set_power {
 	my $self = shift;
-	my $status = (@_ ? '1' : '0');
+	my $status = ($_[0] ? '1' : '0');
 	return $self->_send_command('power', $status);
 }
 

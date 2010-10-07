@@ -1,6 +1,6 @@
 #!perl -Tw
 
-use Test::More tests => (1 + 5 + 7 + 2 * 15);
+use Test::More tests => (1 + 5 + 7 + 2 * 16);
 
 $fpid = undef;
 
@@ -27,6 +27,7 @@ END {
 
 @cmd_resp_data = (
 	[ "%1POWR 1\r", "%1POWR=OK\r", OK ],
+	[ "%1POWR 0\r", "%1POWR=OK\r", OK ],
 	[ "%1POWR ?\r", "%1POWR=2\r", POWER_COOLING ],
 	[ "%1INPT 12\r", "%1INPT=OK\r", OK ],
 	[ "%1INPT ?\r", "%1INPT=12\r", [INPUT_RGB, 2] ],
@@ -114,9 +115,17 @@ SKIP: {
 
 	$d = shift @cmd_resp_data;
 	spawn(\&netlisten_cmd, $d->[0], $d->[1]) || skip("Cannot fork listener process", $cmds);
-	is_deeply( $prj->set_power(1), $d->[2], "set_power" );
+	is_deeply( $prj->set_power(1), $d->[2], "set_power 1" );
 	waitpid($fpid, 0);
-	ok( $?, "Listener status for set_power" );
+	ok( $?, "Listener status for set_power 1" );
+	undef $fpid;
+	$cmds -= $tests_per_cmd;
+
+	$d = shift @cmd_resp_data;
+	spawn(\&netlisten_cmd, $d->[0], $d->[1]) || skip("Cannot fork listener process", $cmds);
+	is_deeply( $prj->set_power(0), $d->[2], "set_power 0" );
+	waitpid($fpid, 0);
+	ok( $?, "Listener status for set_power 0" );
 	undef $fpid;
 	$cmds -= $tests_per_cmd;
 
