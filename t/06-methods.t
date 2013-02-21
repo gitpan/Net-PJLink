@@ -1,6 +1,6 @@
 #!perl -Tw
 
-use Test::More tests => (1 + 4 + 16 + 11 + 9);
+use Test::More tests => (1 + 4 + 16 + 11 + 2 + 6 + 2 + 2);
 
 BEGIN {
 	use_ok( 'Net::PJLink' ) || print "Bail out!\n";
@@ -53,29 +53,46 @@ while (my($cmd_name, $cmd_sym) = each %COMMAND) {
 }
 
 # test try_once behaviour
-$prj = Net::PJLink->new(host => '127.255.255.1', try_once => 1);
+$prj = Net::PJLink->new(
+	host		=> '127.255.255.1',
+	try_once	=> 1,
+);
 isa_ok( $prj, Net::PJLink, 'Create instance' );
 $prj->get_power();
 is( $prj->get_power(), undef, "Check try_once parameter" );
 
 # test authentication sanity
+ok( not(defined $prj->{'auth_password'}),
+    "Check that auth_password is not set by default" );
+$prj = Net::PJLink->new(
+	host		=> '127.255.255.1',
+	try_once	=> 1,
+	auth_password	=> 'asdfghjkl',
+);
+is( $prj->{'auth_password'}, 'asdfghjkl',
+    "Check that constructor sets auth_password correctly" );
 is( $prj->set_auth_password('abcdefg'), 1,
     "Check that set_auth_password works" );
 is( $prj->{'auth_password'}, 'abcdefg',
     "Check that auth_password was set correctly" );
-#is( $prj->set_auth_password('111111111111111111111111111111111'),
-#	0, "Check that bad password is rejected" );
+{ # catch warning message
+	local *STDERR;
+	my $stderr;
+	open STDERR, '>', \$stderr;
+	is( $prj->set_auth_password('111111111111111111111111111111111'), 0,
+	    "Check that bad password is rejected" );
+}
 
 ok( not($prj->{'batch'}), "Check default batch_mode state" );
 
 # test add_hosts
 $prj->add_hosts('127.0.0.1', ['127.0.0.2', '127.0.0.3']);
-is( scalar keys %{$prj->{'host'}}, 3, "Check that add_hosts works" );
+is( scalar keys %{$prj->{'host'}}, 4, "Check that add_hosts works" );
 
 ok( $prj->{'batch'}, "Check that batch_mode is enabled" );
 
 # test remove_hosts
-$prj->remove_hosts(['127.0.0.1', '127.0.0.2']);
+$prj->remove_hosts('127.255.255.1', ['127.0.0.1', '127.0.0.2']);
 is( scalar keys %{$prj->{'host'}}, 1, "Check that remove_hosts works" );
 
 ok( $prj->{'batch'}, "Check that batch_mode is not changed" );

@@ -1,5 +1,9 @@
 Revision history for Net-PJLink
 
+1.02    Wed, 20 Feb 2013 18:18:00 -0600
+	Fix bug preventing auth_password from being set in the constructor.
+	Minor documentation updates.
+
 1.01    Sun, 26 Sep 2010 17:30:00 -0600
         Fix a bug in set_power.
 

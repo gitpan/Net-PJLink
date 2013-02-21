@@ -28,11 +28,11 @@ Net::PJLink - PJLink protocol implementation
 
 =head1 VERSION
 
-Version 1.01 - Fix 
+Version 1.02
 
 =cut
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 
 =head1 SYNOPSIS
@@ -65,7 +65,7 @@ An object has methods corresponding to the commands in the PJLink protocol speci
 
 =head1 EXPORTS
 
-Net::PJLink uses constants to represent status codes sent to and recevied from projectors.
+Net::PJLink uses constants to represent status codes sent to and received from projectors.
 These constants can be used like C<Net::PJLink::ERR_COMMAND>, or imported
 into the local namespace by using the Exporter tag C<:RESPONSES>.
 
@@ -101,7 +101,7 @@ Status is "error".
 =item * C<ERR_COMMAND>
 
 The command could not be recognized or is not supported by the projector.
-If this happens, the projector is deviating from PJLink 1.00 Class 1, the message is getting corrupted, or there is a serious bug in this module.
+This could happen because the projector is deviating from the specification, the message is getting corrupted, or there is a bug in this module.
 
 =item * C<ERR_PARAMETER>
 
@@ -130,7 +130,7 @@ A response from the projector was not received.
 =item * C<ERR_PARSE>
 
 The projector's response was received, but could not be understood.
-If this happens, the projector is deviating from PJLink 1.00 Class 1, the message is getting corrupted, or there is a serious bug in this module.
+This could happen because the projector is deviating from the specification, the message is getting corrupted, or there is a bug in this module.
 
 =back
 
@@ -153,7 +153,7 @@ use constant {
 =head2 Status Responses
 
 These values are returned from commands that request information from the projector.
-Which values can be returned from which commands is specified in the documentation for each command.
+See the documentation for each command to find out which values can be returned for that command.
 
 =over 4
 
@@ -349,6 +349,7 @@ sub new {
 	$self->{'batch'} = $args{'batch'} if (defined $args{'batch'});
 	$self->{'port'} = $args{'port'} || PJLINK_PORT;
 	$self->{'keep_alive'} = $args{'keep_alive'} ? 1 : 0;
+	$self->{'auth_password'} = $args{'auth_password'} if (defined $args{'auth_password'});
 	$self->{'connect_timeout'} = $args{'connect_timeout'} || CONNECT_TIMEOUT;
 	$self->{'receive_timeout'} = $args{'receive_timeout'} || RECEIVE_TIMEOUT;
 	return $self;
@@ -410,7 +411,7 @@ sub _auth_connection {
 
 =head2 set_auth_password($pass)
 
-Set the authentication password.
+Set the password that will be used when connecting to a projector.
 This will only apply to newly established connections.
 
 	$prj->set_auth_password('secret');
@@ -690,7 +691,7 @@ Example:
 	$prj->get_input();
 	# => [ 3, 1 ]
 
-The example response indicates that the first INPUT_DIGITAL source is active.
+The example response indicates that the first C<INPUT_DIGITAL> source is active.
 
 =cut
 
@@ -777,6 +778,21 @@ The example response indicates that the projector's filter is in a C<WARNING> st
 
 The values will be one of C<OK>, C<WARNING>, or C<ERROR>.
 
+Example for finding lamp health from multiple projectors:
+
+	my $prj = Net::PJLink->new(
+		host => [ '192.168.1.1', '192.168.1.2' ],
+	);
+
+	my $result = $prj->get_status();
+	while (my($host, $status) = each %$result) {
+		my $lamp = $status->{'lamp'};
+		print "The projector at $host has lamp status: ";
+		print $lamp == OK ? "ok\n" :
+		      $lamp == WARNING ? "warning\n" :
+		      $lamp == ERROR ? "error\n";
+	}
+
 =cut
 
 sub get_status {
@@ -806,7 +822,7 @@ sub get_status {
 
 =head2 get_lamp_info()
 
-Get the status of the lamp(s). The return value is a data structure like:
+Get the status and hours used for each lamp. The return value is a data structure like:
 
 	[
 		[ $status, $hours ],
@@ -815,7 +831,7 @@ Get the status of the lamp(s). The return value is a data structure like:
 
 For consistency, this structure is used even if the projector only has one lamp.
 
-$status indicates whether the lamp is on or off (1 or 0). $hours is an integer indicating the total number of hours the lamp has been on.
+C<$status> indicates whether the lamp is on or off (1 or 0). $hours is an integer indicating the total number of hours the lamp has been on.
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
 
 =cut
@@ -848,7 +864,23 @@ Get a list of all available inputs. The return value is a data structure like:
 		... # each input
 	]
 
-$type corresponds to one of the 5 input types. $index is the number of that type (i.e. C<[3, 3]> indicates the third digital input).
+C<$type> corresponds to one of the five input types:
+
+=over 4
+
+=item * C<INPUT_RGB>
+
+=item * C<INPUT_VIDEO>
+
+=item * C<INPUT_DIGITAL>
+
+=item * C<INPUT_STORAGE>
+
+=item * C<INPUT_NETWORK>
+
+=back
+
+C<$index> is the number of that type (i.e. C<[3, 3]> indicates the third digital input).
 If the command was not successful, C<ERR_UNAVL_TIME> or C<ERR_PRJT_FAIL> may be returned.
 
 =cut
